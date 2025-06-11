@@ -39,15 +39,9 @@ const navigationItems = [
     icon: <Calendar className="h-5 w-5" />,
   },
   {
-    label: "Analytics",
-    href: "/analytics",
-    icon: <BarChart3 className="h-5 w-5" />,
-  },
-  { label: "Team", href: "/team", icon: <Users className="h-5 w-5" /> },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: <Settings className="h-5 w-5" />,
+    // label: "Settings",
+    // href: "/settings",
+    // icon: <Settings className="h-5 w-5" />,
   },
 ];
 
