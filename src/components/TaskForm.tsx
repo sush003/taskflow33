@@ -16,6 +16,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 
@@ -37,27 +39,38 @@ export const TaskForm = ({
   loading = false,
 }: TaskFormProps) => {
   const [formData, setFormData] = useState({
-    title: initialTask?.title || "",
-    description: initialTask?.description || "",
-    status: initialTask?.status || ("todo" as Task["status"]),
-    priority: initialTask?.priority || ("medium" as Task["priority"]),
-    dueDate: initialTask?.dueDate
-      ? initialTask.dueDate.toISOString().split("T")[0]
-      : "",
+    title: "",
+    description: "",
+    status: "todo" as Task["status"],
+    priority: "medium" as Task["priority"],
+    dueDate: "",
   });
 
-  // Sync formData with initialTask when it changes
   useEffect(() => {
-    setFormData({
-      title: initialTask?.title || "",
-      description: initialTask?.description || "",
-      status: initialTask?.status || "todo",
-      priority: initialTask?.priority || "medium",
-      dueDate: initialTask?.dueDate
-        ? initialTask.dueDate.toISOString().split("T")[0]
-        : "",
-    });
-  }, [initialTask]);
+    if (isOpen) {
+      if (initialTask) {
+        // Editing existing task
+        setFormData({
+          title: initialTask.title,
+          description: initialTask.description || "",
+          status: initialTask.status,
+          priority: initialTask.priority,
+          dueDate: initialTask.dueDate
+            ? initialTask.dueDate.toISOString().split("T")[0]
+            : "",
+        });
+      } else {
+        // Creating new task - reset form
+        setFormData({
+          title: "",
+          description: "",
+          status: "todo",
+          priority: "medium",
+          dueDate: "",
+        });
+      }
+    }
+  }, [isOpen, initialTask]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,32 +78,28 @@ export const TaskForm = ({
       ...formData,
       dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
     });
-    setFormData({
-      title: "",
-      description: "",
-      status: "todo",
-      priority: "medium",
-      dueDate: "",
-    });
-    onClose();
+    // Parent component (ProjectDetail.tsx) will handle closing the dialog and resetting state
   };
 
-  // Accessibility: description for dialog
-  const descriptionId = "task-form-desc";
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        aria-describedby={descriptionId}
-        className="sm:max-w-md animate-slideIn"
-      >
-        <span id={descriptionId} className="sr-only">
-          {initialTask ? "Edit an existing task." : "Create a new task."}
-        </span>
+      <DialogContent className="sm:max-w-md animate-slideIn">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {initialTask ? "Edit Task" : "Create New Task"}
           </DialogTitle>
+          <DialogDescription>
+            {initialTask
+              ? "Make changes to your task here. Click update when you're done."
+              : "Fill in the details for your new task."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -98,9 +107,7 @@ export const TaskForm = ({
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
+              onChange={handleChange}
               placeholder="Enter task title"
               required
               className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
@@ -113,9 +120,7 @@ export const TaskForm = ({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={handleChange}
               placeholder="Enter task description"
               rows={3}
               className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
@@ -171,15 +176,13 @@ export const TaskForm = ({
               id="dueDate"
               type="date"
               value={formData.dueDate}
-              onChange={(e) =>
-                setFormData({ ...formData, dueDate: e.target.value })
-              }
+              onChange={handleChange}
               className="transition-all duration-200 focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -196,7 +199,7 @@ export const TaskForm = ({
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialTask ? "Update" : "Create"} Task
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

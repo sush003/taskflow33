@@ -5,21 +5,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Task, TaskStats } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 
-export const useTasks = () => {
+export const useTasks = (projectId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", user?.id],
+    queryKey: ["tasks", user?.id, projectId],
     queryFn: async () => {
       if (!user) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("tasks")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+
+      if (projectId) {
+        query = query.eq("project_id", projectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -48,6 +54,7 @@ export const useTasks = () => {
           status: taskData.status,
           priority: taskData.priority,
           due_date: taskData.dueDate?.toISOString(),
+          project_id: projectId || null,
         })
         .select()
         .single();
@@ -56,7 +63,9 @@ export const useTasks = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks", user?.id, projectId],
+      });
       toast({
         title: "Task created",
         description: "Your task has been created successfully.",
@@ -96,7 +105,9 @@ export const useTasks = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks", user?.id, projectId],
+      });
       toast({
         title: "Task updated",
         description: "Your task has been updated successfully.",
@@ -118,7 +129,9 @@ export const useTasks = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", user?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["tasks", user?.id, projectId],
+      });
       toast({
         title: "Task deleted",
         description: "Your task has been deleted successfully.",
@@ -133,21 +146,12 @@ export const useTasks = () => {
     },
   });
 
-  const addTask = (taskData: Omit<Task, "id" | "createdAt" | "updatedAt">) => {
-    addTaskMutation.mutate(taskData);
-  };
-
-  const updateTask = (
-    id: string,
-    updates: Partial<Task>,
-    onSuccess?: () => void
-  ) => {
-    updateTaskMutation.mutate({ id, updates }, { onSuccess });
-  };
-
-  const deleteTask = (id: string) => {
-    deleteTaskMutation.mutate(id);
-  };
+  const addTask = addTaskMutation.mutateAsync;
+  const updateTask = updateTaskMutation.mutateAsync;
+  const deleteTask = deleteTaskMutation.mutateAsync;
+  const isAddingTask = addTaskMutation.isPending;
+  const isUpdatingTask = updateTaskMutation.isPending;
+  const isDeletingTask = deleteTaskMutation.isPending;
 
   const getTaskStats = (): TaskStats => {
     return {
@@ -164,6 +168,9 @@ export const useTasks = () => {
     addTask,
     updateTask,
     deleteTask,
+    isAddingTask,
+    isUpdatingTask,
+    isDeletingTask,
     getTaskStats,
   };
 };
